@@ -1,5 +1,7 @@
 import { $, $$, to24HourFormat, formatRangeLabel, toDateInputFormat } from './helpers.js';
 import { center, hereCredentials } from './config.js';
+import { isolineMaxRange, requestIsolineShape } from './here.js';
+
 
 //Height calculations
 const height = $('#content-group-1').clientHeight || $('#content-group-1').offsetHeight;
@@ -55,3 +57,39 @@ map.addEventListener('drag', evt => {
      evt.target.setGeometry(map.screenToGeo(pointer.viewportX, pointer.viewportY));
    }
 }, false);
+
+
+// API CALL TO CALCULATE ISOLINE
+async function calculateIsoline() {
+   console.log('updating...')
+
+   //Configure the options object
+   const options = {
+      mode: $('#car').checked ? 'car' : $('#pedestrian').checked ? 'pedestrian' : 'truck',
+      range: $('#range').value,
+      rangeType: $('#distance').checked ? 'distance' : 'time',
+      center: marker.getGeometry(),
+      date: $('#date-value').value === '' ? toDateInputFormat(new Date()) : $('#date-value').value,
+      time: to24HourFormat($('#hour-slider').value)
+   }
+
+   //Limit max ranges
+   if (options.rangeType === 'distance') {
+      if (options.range > isolineMaxRange.distance) {
+         options.range = isolineMaxRange.distance
+      }
+      $('#range').max = isolineMaxRange.distance;
+   } else if (options.rangeType == 'time') {
+      if (options.range > isolineMaxRange.time) {
+         options.range = isolineMaxRange.time
+      }
+      $('#range').max = isolineMaxRange.time;
+   }
+
+   //Format label
+   $('#slider-val').innerText = formatRangeLabel(options.range, options.rangeType);
+
+   //Center map to isoline
+   map.setCenter(options.center, true);
+}
+
