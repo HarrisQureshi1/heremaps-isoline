@@ -54,7 +54,7 @@ map.addEventListener('dragend', evt => {
 map.addEventListener('drag', evt => {
    const pointer = evt.currentPointer;
    if (evt.target instanceof H.map.Marker) {
-     evt.target.setGeometry(map.screenToGeo(pointer.viewportX, pointer.viewportY));
+      evt.target.setGeometry(map.screenToGeo(pointer.viewportX, pointer.viewportY));
    }
 }, false);
 
@@ -62,34 +62,63 @@ map.addEventListener('drag', evt => {
 // API CALL TO CALCULATE ISOLINE
 async function calculateIsoline() {
    console.log('updating...')
+   
+   async function calculateIsoline() {
 
-   //Configure the options object
-   const options = {
-      mode: $('#car').checked ? 'car' : $('#pedestrian').checked ? 'pedestrian' : 'truck',
-      range: $('#range').value,
-      rangeType: $('#distance').checked ? 'distance' : 'time',
-      center: marker.getGeometry(),
-      date: $('#date-value').value === '' ? toDateInputFormat(new Date()) : $('#date-value').value,
-      time: to24HourFormat($('#hour-slider').value)
-   }
-
-   //Limit max ranges
-   if (options.rangeType === 'distance') {
-      if (options.range > isolineMaxRange.distance) {
-         options.range = isolineMaxRange.distance
+      //Configure the options object
+      const options = {
+         mode: $('#car').checked ? 'car' : $('#pedestrian').checked ? 'pedestrian' : 'truck',
+         range: $('#range').value,
+         rangeType: $('#distance').checked ? 'distance' : 'time',
+         center: marker.getGeometry(),
+         date: $('#date-value').value === '' ? toDateInputFormat(new Date()) : $('#date-value').value,
+         time: to24HourFormat($('#hour-slider').value)
       }
-      $('#range').max = isolineMaxRange.distance;
-   } else if (options.rangeType == 'time') {
-      if (options.range > isolineMaxRange.time) {
-         options.range = isolineMaxRange.time
+
+      //Limit max ranges
+      if (options.rangeType === 'distance') {
+         if (options.range > isolineMaxRange.distance) {
+            options.range = isolineMaxRange.distance
+         }
+         $('#range').max = isolineMaxRange.distance;
+      } else if (options.rangeType == 'time') {
+         if (options.range > isolineMaxRange.time) {
+            options.range = isolineMaxRange.time
+         }
+         $('#range').max = isolineMaxRange.time;
       }
-      $('#range').max = isolineMaxRange.time;
+
+      //Format label
+      $('#slider-val').innerText = formatRangeLabel(options.range, options.rangeType);
+
+      //Center map to isoline
+      map.setCenter(options.center, true);
+   
+   
+      /* initialize an empty LineString to hold our isoline response data.
+      add the isoline response data to the linestring.
+      create a polygon object from the isoline response (and remove the existing polygon).
+      add the polygon to the map. */
+      const linestring = new H.geo.LineString();
+   
+      const isolineShape = await requestIsolineShape(options);
+      isolineShape.forEach(p => linestring.pushLatLngAlt.apply(linestring, p));
+   
+      if (polygon !== undefined) {
+         map.removeObject(polygon);
+      }
+   
+      polygon = new H.map.Polygon(linestring, {
+         style: {
+            fillColor: 'rgba(74, 134, 255, 0.3)',
+            strokeColor: '#4A86FF',
+            lineWidth: 2
+         }
+      });
+      map.addObject(polygon);
    }
-
-   //Format label
-   $('#slider-val').innerText = formatRangeLabel(options.range, options.rangeType);
-
-   //Center map to isoline
-   map.setCenter(options.center, true);
+   
+   calculateIsoline();
+   
 }
 
