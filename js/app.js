@@ -1,3 +1,7 @@
+//Don't forget to import the `HourFilter` class!
+import HourFilter from './HourFilter.js';
+
+
 import { $, $$, to24HourFormat, formatRangeLabel, toDateInputFormat } from './helpers.js';
 import { center, hereCredentials } from './config.js';
 import { isolineMaxRange, requestIsolineShape } from './here.js';
@@ -60,7 +64,10 @@ map.addEventListener('drag', evt => {
 
 
 // API CALL TO CALCULATE ISOLINE
+//Initialize the HourFilter
+const hourFilter = new HourFilter();
 async function calculateIsoline() {
+   
    console.log('updating...')
    
    async function calculateIsoline() {
@@ -119,6 +126,18 @@ async function calculateIsoline() {
    }
    
    calculateIsoline();
-   
-}
 
+   //Enable bar graph for car and time options
+   if (options.mode === 'car' && options.rangeType === 'time') {
+      const promises = [];
+      for (let i = 0; i < 24; i++) {
+         options.time = to24HourFormat(i);
+         promises.push(requestIsolineShape(options))
+      }
+      const polygons = await Promise.all(promises);
+      const areas = polygons.map(x => turf.area(turf.polygon([x])));
+      hourFilter.setData(areas);
+   } else {
+      hourFilter.hideData();
+   }
+}
