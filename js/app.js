@@ -1,10 +1,56 @@
-//Don't forget to import the `HourFilter` class!
-import HourFilter from './HourFilter.js';
-
-
+import { isolineMaxRange, requestIsolineShape } from './here.js';
 import { $, $$, to24HourFormat, formatRangeLabel, toDateInputFormat } from './helpers.js';
 import { center, hereCredentials } from './config.js';
-import { isolineMaxRange, requestIsolineShape } from './here.js';
+
+//Import the `HourFilter` class!
+import HourFilter from './HourFilter.js';
+
+/* ...
+* This code can go near the top of the file
+* ...
+*/
+
+//Manage initial state
+$('#slider-val').innerText = formatRangeLabel($('#range').value, 'time');
+$('#date-value').value = toDateInputFormat(new Date()); 
+
+//Add event listeners
+$$('.isoline-controls').forEach(c => c.onchange = () => calculateIsoline());
+$$('.view-controls').forEach(c => c.onchange = () => calculateView());
+
+
+//Theme control
+const themeTiles = $$('.theme-tile');
+themeTiles.forEach(t => t.onclick = tabifyThemes);
+function tabifyThemes(evt) {
+   themeTiles.forEach(t => t.classList.remove('theme-tile-active'));
+   evt.target.classList.add('theme-tile-active');
+   if (evt.target.id === 'day') {
+      const style = new H.map.Style('https://js.api.here.com/v3/3.1/styles/omv/normal.day.yaml')
+      provider.setStyle(style);
+   } else { 
+      const style = new H.map.Style('./resources/night.yaml');
+      provider.setStyle(style);
+   }
+}
+
+//Tab control for sidebar
+const tabs = $$('.tab');
+tabs.forEach(t => t.onclick = tabify)
+function tabify(evt) {
+   tabs.forEach(t => t.classList.remove('tab-active'));
+   if (evt.target.id === 'tab-1') {
+      $('.tab-bar').style.transform = 'translateX(0)';
+      evt.target.classList.add('tab-active');
+      $('#content-group-1').style.transform = 'translateX(0)';
+      $('#content-group-2').style.transform = 'translateX(100%)';
+   } else {
+      $('.tab-bar').style.transform = 'translateX(100%)';
+      evt.target.classList.add('tab-active');
+      $('#content-group-1').style.transform = 'translateX(-100%)';
+      $('#content-group-2').style.transform = 'translateX(0)';
+   }
+}
 
 
 //Height calculations
@@ -34,7 +80,6 @@ export { router, geocoder }
 
 
 
-
 /* ...
  * DRAGGABLE MARKER
  * ...
@@ -58,86 +103,59 @@ map.addEventListener('dragend', evt => {
 map.addEventListener('drag', evt => {
    const pointer = evt.currentPointer;
    if (evt.target instanceof H.map.Marker) {
-      evt.target.setGeometry(map.screenToGeo(pointer.viewportX, pointer.viewportY));
+     evt.target.setGeometry(map.screenToGeo(pointer.viewportX, pointer.viewportY));
    }
 }, false);
 
-
-// API CALL TO CALCULATE ISOLINE
-//Initialize the HourFilter
-const hourFilter = new HourFilter();
 async function calculateIsoline() {
-   
    console.log('updating...')
-   
-   async function calculateIsoline() {
 
-      //Configure the options object
-      const options = {
-         mode: $('#car').checked ? 'car' : $('#pedestrian').checked ? 'pedestrian' : 'truck',
-         range: $('#range').value,
-         rangeType: $('#distance').checked ? 'distance' : 'time',
-         center: marker.getGeometry(),
-         date: $('#date-value').value === '' ? toDateInputFormat(new Date()) : $('#date-value').value,
-         time: to24HourFormat($('#hour-slider').value)
-      }
-
-      //Limit max ranges
-      if (options.rangeType === 'distance') {
-         if (options.range > isolineMaxRange.distance) {
-            options.range = isolineMaxRange.distance
-         }
-         $('#range').max = isolineMaxRange.distance;
-      } else if (options.rangeType == 'time') {
-         if (options.range > isolineMaxRange.time) {
-            options.range = isolineMaxRange.time
-         }
-         $('#range').max = isolineMaxRange.time;
-      }
-
-      //Format label
-      $('#slider-val').innerText = formatRangeLabel(options.range, options.rangeType);
-
-      //Center map to isoline
-      map.setCenter(options.center, true);
-   
-   
-      /* initialize an empty LineString to hold our isoline response data.
-      add the isoline response data to the linestring.
-      create a polygon object from the isoline response (and remove the existing polygon).
-      add the polygon to the map. */
-      const linestring = new H.geo.LineString();
-   
-      const isolineShape = await requestIsolineShape(options);
-      isolineShape.forEach(p => linestring.pushLatLngAlt.apply(linestring, p));
-   
-      if (polygon !== undefined) {
-         map.removeObject(polygon);
-      }
-   
-      polygon = new H.map.Polygon(linestring, {
-         style: {
-            fillColor: 'rgba(74, 134, 255, 0.3)',
-            strokeColor: '#4A86FF',
-            lineWidth: 2
-         }
-      });
-      map.addObject(polygon);
+   //Configure the options object
+   const options = {
+      mode: $('#car').checked ? 'car' : $('#pedestrian').checked ? 'pedestrian' : 'truck',
+      range: $('#range').value,
+      rangeType: $('#distance').checked ? 'distance' : 'time',
+      center: marker.getGeometry(),
+      date: $('#date-value').value === '' ? toDateInputFormat(new Date()) : $('#date-value').value,
+      time: to24HourFormat($('#hour-slider').value)
    }
-   
-   calculateIsoline();
 
-   //Enable bar graph for car and time options
-   if (options.mode === 'car' && options.rangeType === 'time') {
-      const promises = [];
-      for (let i = 0; i < 24; i++) {
-         options.time = to24HourFormat(i);
-         promises.push(requestIsolineShape(options))
+   //Limit max ranges
+   if (options.rangeType === 'distance') {
+      if (options.range > isolineMaxRange.distance) {
+         options.range = isolineMaxRange.distance
       }
-      const polygons = await Promise.all(promises);
-      const areas = polygons.map(x => turf.area(turf.polygon([x])));
-      hourFilter.setData(areas);
-   } else {
-      hourFilter.hideData();
+      $('#range').max = isolineMaxRange.distance;
+   } else if (options.rangeType == 'time') {
+      if (options.range > isolineMaxRange.time) {
+         options.range = isolineMaxRange.time
+      }
+      $('#range').max = isolineMaxRange.time;
    }
+
+   //Format label
+   $('#slider-val').innerText = formatRangeLabel(options.range, options.rangeType);
+
+   //Center map to isoline
+   map.setCenter(options.center, true);
+   
+   const linestring = new H.geo.LineString();
+
+   const isolineShape = await requestIsolineShape(options);
+   isolineShape.forEach(p => linestring.pushLatLngAlt.apply(linestring, p));
+
+   if (polygon !== undefined) {
+      map.removeObject(polygon);
+   }
+
+   polygon = new H.map.Polygon(linestring, {
+      style: {
+         fillColor: 'rgba(74, 134, 255, 0.3)',
+         strokeColor: '#4A86FF',
+         lineWidth: 2
+      }
+   });
+   map.addObject(polygon);
 }
+
+calculateIsoline();
