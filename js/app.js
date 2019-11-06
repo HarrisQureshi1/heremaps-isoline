@@ -5,11 +5,8 @@ import { center, hereCredentials } from './config.js';
 //Import the `HourFilter` class!
 import HourFilter from './HourFilter.js';
 import MapRotation from './MapRotation.js';
+import Search from './Search.js';
 
-/* ...
-* This code can go near the top of the file
-* ...
-*/
 
 //Manage initial state
 $('#slider-val').innerText = formatRangeLabel($('#range').value, 'time');
@@ -77,14 +74,13 @@ const geocoder = platform.getGeocodingService();
 
 window.addEventListener('resize', () => map.getViewPort().resize());
 
-export { router, geocoder }
 
 
 
 /* ...
- * DRAGGABLE MARKER
- * ...
- */
+* DRAGGABLE MARKER
+* ...
+*/
 
 let polygon;
 const marker = new H.map.Marker(center, {volatility: true});
@@ -104,13 +100,13 @@ map.addEventListener('dragend', evt => {
 map.addEventListener('drag', evt => {
    const pointer = evt.currentPointer;
    if (evt.target instanceof H.map.Marker) {
-     evt.target.setGeometry(map.screenToGeo(pointer.viewportX, pointer.viewportY));
+      evt.target.setGeometry(map.screenToGeo(pointer.viewportX, pointer.viewportY));
    }
 }, false);
 
 async function calculateIsoline() {
    console.log('updating...')
-
+   
    //Configure the options object
    const options = {
       mode: $('#car').checked ? 'car' : $('#pedestrian').checked ? 'pedestrian' : 'truck',
@@ -120,7 +116,7 @@ async function calculateIsoline() {
       date: $('#date-value').value === '' ? toDateInputFormat(new Date()) : $('#date-value').value,
       time: to24HourFormat($('#hour-slider').value)
    }
-
+   
    //Limit max ranges
    if (options.rangeType === 'distance') {
       if (options.range > isolineMaxRange.distance) {
@@ -133,22 +129,22 @@ async function calculateIsoline() {
       }
       $('#range').max = isolineMaxRange.time;
    }
-
+   
    //Format label
    $('#slider-val').innerText = formatRangeLabel(options.range, options.rangeType);
-
+   
    //Center map to isoline
    map.setCenter(options.center, true);
    
    const linestring = new H.geo.LineString();
-
+   
    const isolineShape = await requestIsolineShape(options);
    isolineShape.forEach(p => linestring.pushLatLngAlt.apply(linestring, p));
-
+   
    if (polygon !== undefined) {
       map.removeObject(polygon);
    }
-
+   
    polygon = new H.map.Polygon(linestring, {
       style: {
          fillColor: 'rgba(74, 134, 255, 0.3)',
@@ -176,3 +172,6 @@ function calculateView() {
       rotation.start();
    }
 }
+
+new Search('Berlin, DEU');
+export { calculateIsoline, marker, router, geocoder }
