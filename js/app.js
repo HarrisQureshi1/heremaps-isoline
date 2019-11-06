@@ -4,6 +4,7 @@ import { center, hereCredentials } from './config.js';
 
 //Import the `HourFilter` class!
 import HourFilter from './HourFilter.js';
+import MapRotation from './MapRotation.js';
 
 /* ...
 * This code can go near the top of the file
@@ -159,3 +160,19 @@ async function calculateIsoline() {
 }
 
 calculateIsoline();
+
+
+/* MAP ROATAION ****************/
+/* *************************** */
+const rotation = new MapRotation(map);
+function calculateView() {
+   const options = {
+      theme: $('#day').checked ? 'day' : 'night',
+      static: $('#static').checked 
+   }
+   if (options.static) {
+      rotation.stop();
+   } else {
+      rotation.start();
+   }
+}
